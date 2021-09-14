@@ -1,0 +1,78 @@
+---
+title: "Homework: Reading in Data"
+author: "Firstname Lastname"
+output: html_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 3)
+```
+
+
+```{r load-sas-libraries, echo = F, message = F, warning = F}
+
+library(SASmarkdown)
+sas_enginesetup(sashtml=sashtml)
+
+sasexe <- "C:/Program Files/SASHome/SASFoundation/9.4/sas.exe"
+sasopts <- "-nosplash -ls 75"
+
+# Linux options (for grading, please leave this in!)
+sasexe <- "/usr/local/SASHome/SASFoundation/9.4/bin/sas_en"
+sasopts <- "-ls 75"
+```
+
+
+## Instructions
+Big picture: Read in the Medicare and Medicaid General Payments Data and conduct an exploratory data analysis. You should use both SAS and R to explore the data, but you might choose to use R for certain tasks and SAS for other tasks. 
+
+When you are finished with the assignment: 
+  
+1. Save the file as 05_Lastname_Firstname.Rmd and compile it
+2. Commit the Rmd file and corresponding html file to your homework git repo
+3. Push the commit to github
+4. Locate the Rmd file on github and click on the SHA link for the file
+5. Paste the url of the resulting page into Canvas to submit your assignment.
+
+Your assignment must compile on a different computer as long as the saspath is set correctly for that machine. This means you will need to use a local file path when you read the data in via R (and SAS). So when you specify your file path, it should look something like "General_Payment_Data_Sample.csv" with no "/home/xxx/Documents" or "C:\\" in front of it.  
+
+### About the Data
+
+To get this data, I started with the full 2018 dataset, and limited it to cash payments made to medical doctors reported in January. The full dataset is *way* too big - several GB when stored on disk. 
+
+A sample of the full dataset is available in the template repository (and also  [here](https://github.com/srvanderplas/unl-stat850/raw/master/data/General_Payment_Data_Sample.csv)). It's 8MB after extreme trimming of the less useful columns and sampling 25% of the rows. You can read about the data [here](https://openpaymentsdata.cms.gov/about) and [here](https://www.cms.gov/openpayments/). 
+
+### Questions to Address
+
+- Describe the dataset and any interesting parts of the data you find. 
+- What tasks are easier in R? SAS?
+- What do you find that might need to be cleaned up or corrected before analysis?
+
+You may want to include graphics (using the sample code in the book, or the [R Graph Gallery](https://www.r-graph-gallery.com/)) to show any interesting things you discover. When you include a graph, be sure to provide some contextual description of the information you want someone to take away from the graph.
+
+## Data Exploration
+
+### R
+(You don't need to keep these headings, but I want you to have a skeleton of what the code chunks should look like)
+
+```{r}
+# Read in the CSV here
+
+```
+
+### SAS
+
+Fill in your code in the chunk below, or use the generalpayment.sas file if you prefer. Write your observations in this section, referencing lines of code and/or pieces of the SAS output as necessary (do this whether or not you are using SASMarkdown). 
+
+```{r, engine="sashtml", engine.path=sasexe, engine.opts=sasopts, collectcode = T, error = T}
+/* Read in the CSV here */
+
+```
+
+You can delete the information below if you don't need it, but these are handy tricks for using sasmarkdown. 
+
+```{r tricks, engine="sashtml", engine.path=sasexe, engine.opts=sasopts, error = T}
+/* The collectcode=T option lets you reference data in other chunks, just like in R */
+  
+```
