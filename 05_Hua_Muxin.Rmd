@@ -1,0 +1,206 @@
+---
+title: "Homework: Reading in Data"
+author: "Muxin Hua"
+output: html_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 3)
+```
+
+
+```{r load-sas-libraries, echo = F, message = F, warning = F}
+
+library(SASmarkdown)
+sas_enginesetup(sashtml=sashtml)
+
+sasexe <- "C:/Program Files/SASHome/SASFoundation/9.4/sas.exe"
+sasopts <- "-nosplash -ls 75"
+
+# Linux options (for grading, please leave this in!)
+sasexe <- "/usr/local/SASHome/SASFoundation/9.4/bin/sas_en"
+sasopts <- "-ls 75"
+```
+
+
+## Instructions
+Big picture: Read in the Medicare and Medicaid General Payments Data and conduct an exploratory data analysis. You should use both SAS and R to explore the data, but you might choose to use R for certain tasks and SAS for other tasks. 
+
+When you are finished with the assignment: 
+  
+1. Save the file as 05_Lastname_Firstname.Rmd and compile it
+2. Commit the Rmd file and corresponding html file to your homework git repo
+3. Push the commit to github
+4. Locate the Rmd file on github and click on the SHA link for the file
+5. Paste the url of the resulting page into Canvas to submit your assignment.
+
+Your assignment must compile on a different computer as long as the saspath is set correctly for that machine. This means you will need to use a local file path when you read the data in via R (and SAS). So when you specify your file path, it should look something like "General_Payment_Data_Sample.csv" with no "/home/xxx/Documents" or "C:\\" in front of it.  
+
+### About the Data
+
+To get this data, I started with the full 2018 dataset, and limited it to cash payments made to medical doctors reported in January. The full dataset is *way* too big - several GB when stored on disk. 
+
+A sample of the full dataset is available in the template repository (and also  [here](https://github.com/srvanderplas/unl-stat850/raw/master/data/General_Payment_Data_Sample.csv)). It's 8MB after extreme trimming of the less useful columns and sampling 25% of the rows. You can read about the data [here](https://openpaymentsdata.cms.gov/about) and [here](https://www.cms.gov/openpayments/). 
+
+### Questions to Address
+
+- Describe the dataset and any interesting parts of the data you find. 
+- What tasks are easier in R? SAS?
+- What do you find that might need to be cleaned up or corrected before analysis?
+
+You may want to include graphics (using the sample code in the book, or the [R Graph Gallery](https://www.r-graph-gallery.com/)) to show any interesting things you discover. When you include a graph, be sure to provide some contextual description of the information you want someone to take away from the graph.
+
+## Data Exploration
+
+### R
+(You don't need to keep these headings, but I want you to have a skeleton of what the code chunks should look like)
+#### import dataset
+```{r}
+# Read in the CSV here
+payment <- read.csv('.\\General_Payment_Data_Sample.csv',
+                    header = TRUE,
+                    sep = ',')
+head(payment)
+```
+#### describe the dataset  
+We first want to know the dimension of the data, and the data types of the variables.
+```{r}
+summary(payment)
+dim(payment)[1]
+```
+This is a dataset with 34 columns and 22302 rows and most of them are categorical data.
+
+#### *Not-a-number* values
+Taking a look at the data to see if there is any *Not-a-number* value. If there are some NA's, we have to take actions to these value.
+```{r}
+sum(is.na(payment))
+```
+From this result, it looks like there is no NA in the data set, which is uncommon for data collected from medical doctors. So I would take a closer look at the data.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+change_types <- payment %>% group_by(Change_Type) %>% summarize(n=n())
+```
+#### Take a look at the distribution of *Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State*.
+```{r}
+state <- payment %>% group_by(Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State) %>% summarize(freq=n())
+
+ggplot(data=state, aes(Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State, freq))+
+  geom_col()+
+  labs(x='State')
+```
+New Jersey has the most frequency in Applicable Manufacturer or Applicable GPO Making Payment. The rest of the top 5 are Massachusetts, California, Pennsylvania and Illinois. But there is a portion of data classified as '.', we need to figure out how large is the portion to decide what we should do about these data (remove or trace back and etc.)
+```{r}
+state$state <- state$Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State
+state <- state[,-1]
+NA_ratio <- state[state$state=='.',][1,1]/sum(state$freq)
+NA_ratio
+```
+There are 1.66% missing data in *Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State*. This is not a very large portion, so we could remove it for further analyse.
+```{r}
+#remove the NA data
+payment <- payment[(payment$Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State!='.'),]
+```
+
+#### Check *NA* for other variables
+```{r}
+head(payment)
+payment %>% group_by(Recipient_Province) %>% summarize(freq=n())
+payment %>% group_by(Recipient_Postal_Code) %>% summarize(freq=n())
+payment %>% group_by(City_of_Travel) %>% summarize(freq=n())
+payment %>% group_by(State_of_Travel) %>% summarize(freq=n())
+payment %>% group_by(Country_of_Travel) %>% summarize(freq=n())
+payment %>% group_by(Name_of_Third_Party_Entity_Receiving_Payment_or_Transfer_of_Value) %>% summarize(freq=n())
+payment %>% group_by(Third_Party_Equals_Covered_Recipient_Indicator) %>% summarize(freq=n())
+payment %>% group_by(Contextual_Information) %>% summarize(freq=n())
+payment %>% group_by(Charity_Indicator) %>% summarize(freq=n())
+payment %>% group_by(Associated_Drug_or_Biological_NDC_1) %>% summarize(freq=n())
+```
+There are 10 columns has large portion (>70%) of NA values: *Recipient_Province*, *Recipient_Postal_Code*, *City_of_Travel*, *State_of_Travel*, *Country_of_Travel*, *Name_of_Third_Party_Entity_Receiving_Payment_or_Transfer_of_Value*, *Third_Party_Equals_Covered_Recipient_Indicator* *Contextual_Information*, *Charity_Indicator*, *Associated_Drug_or_Biological_NDC_1*. They can't provide much significant information in analyse, so I drop these columns.
+```{r}
+payment <- payment[,-which(colnames(payment) %in% c('Recipient_Province', 'Recipient_Postal_Code', 'City_of_Travel', 'State_of_Travel', 'Country_of_Travel', 'Name_of_Third_Party_Entity_Receiving_Payment_or_Transfer_of_Value', 'Third_Party_Equals_Covered_Recipient_Indicator', 'Contextual_Information', 'Charity_Indicator', 'Associated_Drug_or_Biological_NDC_1'))]
+```
+
+### Data type changing    
+There are two variables in the data need to be changed. 1, zip code must be at the same length; 2, Which state spend most in general; 3, *Date_of_payment* must be date format for plotting.
+
+#### Fix zip code  
+I'll keep the first 5 digits only.
+```{r}
+payment$Recipient_Zip_Code <- substr(payment[, 'Recipient_Zip_Code'],1,5)
+```
+
+#### Change the data type of *Date_of_Payment* to date type
+```{r}
+library(lubridate)
+payment$Payment_date <- mdy(payment$Date_of_Payment)
+```
+#### Prepare data for SAS
+```{r}
+payment %>% sample_frac(size= .25) %>% write.csv('C:\\Users\\HUA\\Documents\\2021\\850\\05-reading-in-data-Muxin_Hua\\cleaned_payment.csv', na='.')
+```
+
+
+#### Do some Plots  
+> 1, Look at the change type distribution for different change type.
+
+```{r}
+ggplot(data=change_types, aes(Change_Type, n))+
+  geom_col()+
+  labs(y='Frequency')
+
+cover_types <- payment %>% group_by(Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1) %>% summarize(n1=n())
+ggplot(data=cover_types, aes(Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1, n1))+
+  geom_col()+
+  labs(y='Frequency')
+```
+>2, Payment amount by state    
+We may want to know which state paied most. 
+
+```{r}
+pay_state <- data.frame(payment[,'Total_Amount_of_Payment_USDollars'],payment[,'Recipient_State'])
+colnames(pay_state) <- c('pay', 'state')
+new <- aggregate(pay_state$pay,by=list(type=pay_state$state),sum)
+
+ggplot(new, aes(type, x))+
+  geom_col()+
+  labs(x='State', y='total amount')
+```
+
+>3, payment times vs date
+
+```{r}
+library(lubridate)
+date <- payment %>% group_by(Date_of_Payment) %>% summarize(freq=n())
+
+date$dat <- mdy(date$Date_of_Payment)
+date
+
+
+ggplot(data=date, aes(dat, freq))+
+  geom_point()+
+  geom_line()+
+  xlab('Date')+
+  ylab('Times')
+```
+From this plot of payment times vs Date, we can see a periodic pattern in the payment times along with date. There might be a  period and a reason behind that, which could be a leading question for further analysis.
+
+
+### Answers for the Questions 
+#### What tasks are easier in R? SAS?
+> I would say most of the wrangling work are easier in R, because R has a straight forward syntax, and much easier to visualize the data-changing. 2-D plot is also easier in R due to the abundant packages offer in R. But when it comes to the statistical result, there's no doubt SAS gives more clear, detailed results.  
+
+#### What do you find that might need to be cleaned up or corrected before analysis?
+>There are several kinds of data need to be cleaned up. 1, NA data. NA data usually gives unclear and misleading statistic result, so i would recommend clean these data first. 2, time format data. Time is quit special as it has its own data format. Considering chronogical effect normally gets more attention, correct data for time is important. 3, abnormal data. I would suggest taking a brief look at the data (mean, min. max etc.), so one could have a first impression of the data, and maybe spot some abonormal data. For example negative value for payment, or several extremly small data in a column where the rest are more than 100 times of these extrmlly small ones, the same idea applies for extremly large data. 
+
+### SAS
+
+Fill in your code in the chunk below, or use the generalpayment.sas file if you prefer. Write your observations in this section, referencing lines of code and/or pieces of the SAS output as necessary (do this whether or not you are using SASMarkdown). 
+
+**Please refer to `genrealpayments.sas` for code**   
+1, By looking at the total amount of payment, the data ranges from 0.11 to 126528.51, which is a big range. But if we look at the rest statistics like median, mode and 99 percent, we find most data are less or equal than 10307. There could be abnormally large data in this column. Researchers need to pay more attention to these date and do further investigation before making solid conclusion.   
+    
+2, From what i did above, New Jersey has the most applicable manufacturer or applicable GPO making payment, so I want to know the distribution of recipient payment there. The variance is 1165564.27, which is huge, so the payment by recipient strongly varies. The skewness value of 4.68 indicates the distribution has a right tail, which means more of the payment concentrated in the left side of distribution. That also means small payments is more than large payments there.
+
