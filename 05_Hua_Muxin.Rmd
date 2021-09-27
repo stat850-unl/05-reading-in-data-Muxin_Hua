@@ -58,7 +58,7 @@ You may want to include graphics (using the sample code in the book, or the [R G
 #### import dataset
 ```{r}
 # Read in the CSV here
-payment <- read.csv('.\\General_Payment_Data_Sample.csv',
+payment <- read.csv('General_Payment_Data_Sample.csv',
                     header = TRUE,
                     sep = ',')
 head(payment)
@@ -203,4 +203,5 @@ Fill in your code in the chunk below, or use the generalpayment.sas file if you 
 1, By looking at the total amount of payment, the data ranges from 0.11 to 126528.51, which is a big range. But if we look at the rest statistics like median, mode and 99 percent, we find most data are less or equal than 10307. There could be abnormally large data in this column. Researchers need to pay more attention to these date and do further investigation before making solid conclusion.   
     
 2, From what i did above, New Jersey has the most applicable manufacturer or applicable GPO making payment, so I want to know the distribution of recipient payment there. The variance is 1165564.27, which is huge, so the payment by recipient strongly varies. The skewness value of 4.68 indicates the distribution has a right tail, which means more of the payment concentrated in the left side of distribution. That also means small payments is more than large payments there.
+
 

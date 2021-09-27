@@ -1,7 +1,7 @@
-proc import datafile='.\\cleaned_payment.csv' 
+proc import datafile='cleaned_payment.csv' 
 	out=payment
 	DBMS = csv
-	REPLCACE;
+	REPLACE;
 	GETNAMES=YES;
 	run;
 proc print data=payment(obs=10);
@@ -14,7 +14,7 @@ proc means data=payment
 
 /*As NJ has the most applicable manufacturer or applicable GPO making payment, I want to know how the recipients payment look like there.*/
 proc univariate data=payment;
-	where Recipient_State='NJ' '';
+	where Recipient_State='NJ';
 	title 'payment in NJ';
 	var Total_Amount_of_Payment_USDolla;
 	inset skewness kurtosis/ position=ne;
